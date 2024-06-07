@@ -1,4 +1,5 @@
 Flask==3.0.3
+Flask-Caching==2.3.0
 python-dotenv==1.0.0
 pandas==2.2.2
 fast-langdetect==0.1.1
