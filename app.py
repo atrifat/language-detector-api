@@ -28,7 +28,7 @@ CACHE_DURATION_SECONDS = (
 CACHE_DURATION_SECONDS = int(os.getenv("CACHE_DURATION_SECONDS", 60))
 ENABLE_CACHE = os.getenv("ENABLE_CACHE", "false") == "true"
 
-APP_VERSION = "0.0.1"
+APP_VERSION = "0.1.0"
 
 # Setup logging configuration
 LOGGING_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
