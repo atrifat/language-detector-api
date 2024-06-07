@@ -8,6 +8,7 @@ import functools
 
 from fast_langdetect import detect_multilingual
 from langdetect import detect_langs
+from flask_caching import Cache
 
 load_dotenv()
 
@@ -18,6 +19,14 @@ LISTEN_HOST = os.getenv("LISTEN_HOST", "0.0.0.0")
 LISTEN_PORT = os.getenv("LISTEN_PORT", "5000")
 LANGUAGE_DETECTION_MODEL = os.getenv("LANGUAGE_DETECTION_MODEL", "langdetect")
 LOW_MEMORY_MODE = os.getenv("LOW_MEMORY_MODE", "false") == "true"
+CACHE_DURATION_SECONDS = (
+    None
+    if int(os.getenv("CACHE_DURATION_SECONDS", 60)) == 0
+    else int(os.getenv("CACHE_DURATION_SECONDS", 60))
+)
+
+CACHE_DURATION_SECONDS = int(os.getenv("CACHE_DURATION_SECONDS", 60))
+ENABLE_CACHE = os.getenv("ENABLE_CACHE", "false") == "true"
 
 APP_VERSION = "0.0.1"
 
@@ -41,6 +50,14 @@ if ENABLE_API_TOKEN and API_TOKEN == "":
     raise Exception("API_TOKEN is required if ENABLE_API_TOKEN is enabled")
 
 app = Flask(__name__)
+
+cache_config = {
+    "DEBUG": True if APP_ENV != "production" else False,
+    "CACHE_TYPE": "SimpleCache" if ENABLE_CACHE else "NullCache",
+    "CACHE_DEFAULT_TIMEOUT": CACHE_DURATION_SECONDS,  # Cache duration in seconds
+}
+cache = Cache(config=cache_config)
+cache.init_app(app)
 
 
 def is_valid_api_key(api_key):
@@ -67,6 +84,16 @@ def api_required(func):
             return func(*args, **kwargs)
 
     return decorator
+
+
+def make_key_fn():
+    """A function which is called to derive the key for a computed value.
+       The key in this case is the concat value of all the json request
+       parameters. Other strategy could to use any hashing function.
+    :returns: unique string for which the value should be cached.
+    """
+    user_data = request.get_json()
+    return ",".join([f"{key}={value}" for key, value in user_data.items()])
 
 
 def perform_detect_language(query):
@@ -115,6 +142,7 @@ def handle_exception(error):
 
 @app.route("/detect", methods=["POST"])
 @api_required
+@cache.cached(make_cache_key=make_key_fn)
 def predict():
     data = request.json
     q = data["q"]
