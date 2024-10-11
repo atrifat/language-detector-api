@@ -49,6 +49,10 @@ else:
 if ENABLE_API_TOKEN and API_TOKEN == "":
     raise Exception("API_TOKEN is required if ENABLE_API_TOKEN is enabled")
 
+#  Ensure model warmed-up for fast_langdetect before starting API server
+if LANGUAGE_DETECTION_MODEL == "fast_langdetect":
+    detect_multilingual("", low_memory=LOW_MEMORY_MODE)
+
 app = Flask(__name__)
 
 cache_config = {
